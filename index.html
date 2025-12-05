@@ -13,6 +13,8 @@
         #message-box.hidden { display:none }
         .mini-map { width:84px; height:64px; border-radius:8px; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,0.15); overflow:hidden }
     </style>
+    
+    <link rel="manifest" href="./manifest.json">
 </head>
 <body class="p-4 sm:p-6">
 <header class="mb-6">
@@ -362,24 +364,27 @@ async function takePhoto() {
     takePhotoBtn.disabled = false; takePhotoBtn.textContent = 'Tomar FOTO';
   }
 }
+<script>
+// =========================
+// INICIALIZACIÓN
+// =========================
+window.onload = async () => {
+    try {
+        await initDB();
+        loadGallery();
+        setMode('directo');
 
-/* ==================================================
-   Inicialización segura en onload
-   - Inicializa DB
-   - Carga galería
-   - No deja funciones simuladas
-   ================================================== */
-window.addEventListener('load', async () => {
-  try {
-    await initDB();
-    loadGallery();
-    setMode('directo');
-  } catch (err) {
-    console.error('Init error', err);
-    showMessage('Error al iniciar la aplicación', true);
-  }
-});
-
+        // Registro correcto del Service Worker
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("./sw.js")
+            .then(() => console.log("Service Worker registrado correctamente"))
+            .catch(err => console.error("Error registrando SW:", err));
+        }
+    } catch (e) {
+        console.error(e);
+        showMessage('Error al iniciar la aplicación.', true);
+    }
+};
 </script>
 </body>
 </html>
