@@ -1,101 +1,135 @@
 // logicStamp.js
 import { activeTemplate } from "./templates.js";
 
+/**
+ * Estampa una foto con una plantilla y metadatos dinámicos.
+ * @param {string} baseImageUrl - Foto original (dataURL o blob URL)
+ * @param {object} metadata
+ * @param {string|null} miniMapUrl - Imagen real del mapa (OSM static)
+ */
 export async function stampPhoto(baseImageUrl, metadata, miniMapUrl) {
-  
+
   return new Promise((resolve, reject) => {
 
-    const imgBase = new Image();
-    imgBase.crossOrigin = "anonymous";
+    const photo = new Image();
+    photo.crossOrigin = "anonymous";
 
-    imgBase.onload = () => {
+    photo.onload = () => {
+
       const canvas = document.createElement("canvas");
-      canvas.width = imgBase.width;
-      canvas.height = imgBase.height;
-
+      canvas.width = photo.width;
+      canvas.height = photo.height;
       const ctx = canvas.getContext("2d");
 
-      // 1. Dibujar la plantilla PNG
-      ctx.drawImage(imgBase, 0, 0);
+      // === (1) fondo: FOTO ORIGINAL ===
+      ctx.drawImage(photo, 0, 0, canvas.width, canvas.height);
 
-      const style = activeTemplate.textStyle;
-      ctx.fillStyle = style.color;
-      ctx.font = style.font;
-      ctx.textBaseline = "top";
+      // === (2) PLANTILLA PNG ===
+      const templateImg = new Image();
+      templateImg.crossOrigin = "anonymous";
 
-      const layout = activeTemplate.layout;
+      templateImg.onload = () => {
 
-      // 2. Insertar los DATOS según la plantilla activa
-      if (activeTemplate.fields.date)
-        ctx.fillText(`Fecha: ${metadata.date}`, layout.date.x, layout.date.y);
+        ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
 
-      if (activeTemplate.fields.time)
-        ctx.fillText(`Hora: ${metadata.time}`, layout.time.x, layout.time.y);
+        // === (3) CONFIGURACIONES DE ESTILO ===
+        const style = activeTemplate.textStyle;
+        const layout = activeTemplate.layout;
 
-      if (activeTemplate.fields.timezone)
-        ctx.fillText(`Zona: ${metadata.timezone}`, layout.timezone.x, layout.timezone.y);
+        ctx.fillStyle = style.color;
+        ctx.font = style.font;
+        ctx.textBaseline = "top";
 
-      if (activeTemplate.fields.address) {
-        drawMultiline(
-          ctx,
-          `Ubicación: ${metadata.address}`,
-          layout.address.x,
-          layout.address.y,
-          layout.address.maxWidth
-        );
-      }
+        // === (4) CAMPOS DE TEXTO ===
+        if (activeTemplate.fields.date)
+          ctx.fillText(metadata.date, layout.date.x, layout.date.y);
 
-      if (activeTemplate.fields.coords && metadata.lat && metadata.lon) {
-        ctx.fillText(
-          `Lat: ${metadata.lat.toFixed(6)}  Lon: ${metadata.lon.toFixed(6)}`,
-          layout.coords.x,
-          layout.coords.y
-        );
-      }
+        if (activeTemplate.fields.time)
+          ctx.fillText(metadata.time, layout.time.x, layout.time.y);
 
-      // 3. Mini-mapa real
-      if (activeTemplate.fields.map && miniMapUrl) {
-        const mapImg = new Image();
-        mapImg.onload = () => {
-          ctx.drawImage(
-            mapImg,
-            layout.map.x,
-            layout.map.y,
-            layout.map.width,
-            layout.map.height
+        if (activeTemplate.fields.timezone)
+          ctx.fillText(metadata.timezone, layout.timezone.x, layout.timezone.y);
+
+        if (activeTemplate.fields.address)
+          drawMultiline(
+            ctx,
+            metadata.address,
+            layout.address.x,
+            layout.address.y,
+            layout.address.maxWidth
           );
 
-          canvas.toBlob(blob => resolve(blob), "image/jpeg", 0.92);
-        };
-        mapImg.src = miniMapUrl;
-      } else {
-        canvas.toBlob(blob => resolve(blob), "image/jpeg", 0.92);
-      }
-    };
+        if (activeTemplate.fields.coords && metadata.lat && metadata.lon) {
+          ctx.fillText(
+            `Lat: ${metadata.lat.toFixed(6)} | Lon: ${metadata.lon.toFixed(6)}`,
+            layout.coords.x,
+            layout.coords.y
+          );
+        }
 
-    imgBase.onerror = reject;
-    imgBase.src = activeTemplate.png;
+        // === (5) MINI-MAPA REAL (si existe y la plantilla lo soporta) ===
+        if (activeTemplate.fields.map && miniMapUrl) {
+          
+          const mapImg = new Image();
+          mapImg.crossOrigin = "anonymous";
+
+          mapImg.onload = () => {
+
+            ctx.drawImage(
+              mapImg,
+              layout.map.x,
+              layout.map.y,
+              layout.map.width,
+              layout.map.height
+            );
+
+            canvas.toBlob(blob => resolve(blob), "image/jpeg", 0.92);
+          };
+
+          // Fallback si el mapa falla
+          mapImg.onerror = () => {
+            console.warn("No se pudo cargar mini-mapa real, continuando sin él.");
+            canvas.toBlob(blob => resolve(blob), "image/jpeg", 0.92);
+          };
+
+          mapImg.src = miniMapUrl;
+
+        } else {
+          canvas.toBlob(blob => resolve(blob), "image/jpeg", 0.92);
+        }
+
+      }; // templateImg.onload
+
+      templateImg.onerror = reject;
+      templateImg.src = activeTemplate.png;
+
+    }; // photo.onload
+
+    photo.onerror = reject;
+    photo.src = baseImageUrl;
+
   });
 }
 
 
 
-// Utilidad para texto multilinea
+/* ===========================================
+   Utilidad para texto multilinea
+=========================================== */
 function drawMultiline(ctx, text, x, y, maxWidth) {
   const words = text.split(" ");
   let line = "";
-  
+
   for (let w of words) {
     const testLine = line + w + " ";
-    const metrics = ctx.measureText(testLine);
-    
-    if (metrics.width > maxWidth) {
+    if (ctx.measureText(testLine).width > maxWidth) {
       ctx.fillText(line, x, y);
       line = w + " ";
-      y += 28;
+      y += 32; // altura de línea
     } else {
       line = testLine;
     }
   }
+
   ctx.fillText(line, x, y);
 }
