@@ -2,83 +2,106 @@
 <html lang="es">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>TimeCamera - TimeLocus</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <link rel="stylesheet" href="./style.css" />
-
-    <style>
-        body { font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial; background:#f7f7f9 }
-        .camera-container { position: relative; width: 100%; max-width: 720px; margin: auto }
-        #video, #canvas { width:100%; height:auto; border-radius: 12px; display:block }
-        .tab-button.active { border-color:#4f46e5; color:#4f46e5; background:#eef2ff }
-        #message-box.hidden { display:none }
-        .mini-map { width:84px; height:64px; border-radius:8px; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,0.15); overflow:hidden }
-    </style>
+    <title>TimeCamera — Plantillas Pro</title>
 
     <link rel="manifest" href="./manifest.json">
+    <link rel="stylesheet" href="./style.css">
+
+    <style>
+        body { background:#f5f6fa; font-family: Inter, system-ui, sans-serif; }
+        .camera-container video, .camera-container canvas {
+            width:100%; height:auto; border-radius:12px; display:block;
+        }
+        .tab-button.active {
+            background:#eef2ff; color:#4338ca; border-color:#4338ca;
+        }
+        .hidden { display:none; }
+    </style>
 </head>
 
 <body class="p-4 sm:p-6">
 
 <header class="mb-6">
-    <h1 class="text-2xl font-bold">TimeCamera — TimeLocus</h1>
-    <p class="text-sm text-gray-600">Fotos con sello auténtico: hora, coordenadas y dirección real (Nominatim)</p>
+    <h1 class="text-2xl font-bold">TimeCamera — Estampado con Plantillas</h1>
+    <p class="text-gray-600 text-sm">
+        Fotos con sello real: Fecha, hora, dirección, coordenadas, mini mapa y plantilla PNG personalizada.
+    </p>
 </header>
 
 <main class="max-w-3xl mx-auto">
 
-    <!-- Tabs -->
+    <!-- ====== TABS ====== -->
     <div class="flex mb-4 p-1 bg-white rounded-lg shadow-inner">
-        <button id="tab-directo" class="tab-button active flex-1 py-2 px-4" onclick="setMode('directo')">Directo</button>
-        <button id="tab-manual" class="tab-button flex-1 py-2 px-4" onclick="setMode('manual')">Manual</button>
+        <button id="tab-directo" onclick="setMode('directo')" class="tab-button active flex-1 py-2 px-4">Directo</button>
+        <button id="tab-manual" onclick="setMode('manual')" class="tab-button flex-1 py-2 px-4">Manual</button>
     </div>
 
-    <!-- Manual mode panel -->
+    <!-- ====== OPCIONES MANUAL ====== -->
     <div id="manual-options" class="bg-white p-4 rounded-xl shadow-lg mb-6 hidden">
-        <label class="block text-xs font-medium text-gray-700 mb-1">Ubicación (texto libre)</label>
-        <input id="manual-location-input" class="w-full p-2 border rounded-md mb-3" placeholder="Ej: Sede Central - Área de Almacén" />
+        <label class="text-xs text-gray-700 font-medium">Ubicación (texto libre)</label>
+        <input id="manual-location-input" class="w-full p-2 border rounded-md mb-3" placeholder="Ej: Sede Central, Área de Almacén">
 
         <div class="flex gap-3 mb-3">
-            <input id="manual-date" type="date" class="flex-1 p-2 border rounded-md" />
-            <input id="manual-time" type="time" class="flex-1 p-2 border rounded-md" />
+            <input id="manual-date" type="date" class="flex-1 p-2 border rounded-md">
+            <input id="manual-time" type="time" class="flex-1 p-2 border rounded-md">
         </div>
 
-        <label class="block text-xs font-medium text-gray-700 mb-1">Coordenadas (lat, lon) - opcional</label>
-        <input id="manual-coords" class="w-full p-2 border rounded-md" placeholder="Ej: 4.710989, -74.072090" />
-
-        <p class="text-xs text-gray-500 mt-2">En modo Manual, los datos ingresados reemplazan GPS.</p>
+        <label class="text-xs font-medium">Coordenadas (lat, lon)</label>
+        <input id="manual-coords" class="w-full p-2 border rounded-md" placeholder="17.065, -96.723">
     </div>
 
-    <!-- Cámara -->
-    <div class="camera-container bg-gray-900 rounded-xl shadow-2xl p-2 mb-6">
-        <video id="video" playsinline autoplay muted></video>
+    <!-- ====== CÁMARA ====== -->
+    <div class="camera-container bg-gray-900 rounded-xl shadow-2xl p-2 mb-6 relative">
+        <video id="video" autoplay muted playsinline></video>
         <canvas id="canvas" class="hidden"></canvas>
 
-        <div id="loading-spinner" class="absolute inset-0 flex items-center justify-center bg-gray-900/80 hidden">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-indigo-500"></div>
-            <p class="ml-3 text-white">Cargando cámara...</p>
+        <div id="loading-spinner" class="absolute inset-0 bg-black/60 text-white hidden flex justify-center items-center">
+            <div class="animate-spin border-b-4 border-indigo-500 rounded-full h-10 w-10"></div>
+            <span class="ml-3">Cargando cámara...</span>
         </div>
     </div>
 
+    <!-- ====== BOTONES ====== -->
     <div class="flex justify-center gap-4 mb-8">
-        <button id="start-camera" class="bg-indigo-600 text-white py-3 px-6 rounded-full">Iniciar Cámara</button>
-        <button id="take-photo" class="bg-red-500 text-white py-3 px-6 rounded-full" disabled>Tomar FOTO</button>
+        <button id="start-camera" class="bg-indigo-600 text-white px-6 py-3 rounded-full">
+            Iniciar cámara
+        </button>
+
+        <button id="take-photo" disabled class="bg-red-500 text-white px-6 py-3 rounded-full">
+            Tomar FOTO
+        </button>
     </div>
 
-    <!-- Galería -->
-    <div class="bg-white p-4 rounded-xl shadow-lg">
+    <!-- ====== SECCIÓN PARA SUBIR PNG COMO PLANTILLA ====== -->
+    <div class="bg-white p-4 rounded-xl shadow mb-8">
+        <h2 class="font-bold mb-2">Cargar Plantilla PNG</h2>
+
+        <input id="tpl-upload" type="file" accept="image/png" class="mb-3 block">
+        <p class="text-xs text-gray-500">Sube cualquier PNG. Se convertirá en plantilla automáticamente.</p>
+
+        <img id="tpl-preview" class="mt-3 rounded-md shadow hidden" style="max-width:250px;">
+    </div>
+
+    <!-- ====== GALERÍA ====== -->
+    <div class="bg-white p-4 rounded-xl shadow-lg mb-10">
         <h2 class="text-lg font-bold mb-3">Galería</h2>
-        <div id="gallery" class="grid grid-cols-1 sm:grid-cols-3 gap-4" aria-live="polite"></div>
-        <p id="no-photos" class="text-center text-gray-500 mt-3">No hay fotos fichadas. ¡Toma una!</p>
+
+        <div id="gallery" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
+
+        <p id="no-photos" class="text-center text-gray-500 mt-3">
+            No hay fotos fichadas. Toma una para verla aquí.
+        </p>
     </div>
 </main>
 
-<!-- Mensajes -->
-<div id="message-box" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 p-3 text-white rounded-lg shadow-xl hidden"></div>
+<!-- ====== MENSAJE FLOTANTE ====== -->
+<div id="message-box" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 hidden text-white px-4 py-2 rounded-lg shadow-lg"></div>
 
-<!-- MÓDULOS DE JAVASCRIPT CORREGIDOS -->
-<script type="module" src="./js/app.js"></script>
+
+<!-- ====== APP JS ====== -->
+<script type="module" src="./app.js"></script>
 
 </body>
 </html>
